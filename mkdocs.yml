@@ -1,0 +1,44 @@
+site_name: F1 Dashboard
+site_description: Dashboard de análise de dados de Fórmula 1 com a API OpenF1.
+repo_name: f1
+
+theme:
+  name: material
+  language: pt-BR
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: red
+      accent: red
+      toggle:
+        icon: material/brightness-7
+        name: Alternar para modo escuro
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: red
+      accent: red
+      toggle:
+        icon: material/brightness-4
+        name: Alternar para modo claro
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - content.code.copy
+
+nav:
+  - Início: index.md
+  - Arquitetura: arquitetura.md
+  - Páginas:
+      - Comparação de Pilotos: paginas/comparacao_pilotos.md
+      - Estratégia de Pneus: paginas/estrategia_pneus.md
+      - Ritmo de Corrida: paginas/ritmo_corrida.md
+  - Referência:
+      - API OpenF1: api_openf1.md
+      - Modelos de Domínio: modelos.md
+
+markdown_extensions:
+  - admonition
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - pymdownx.inlinehilite
+  - tables
