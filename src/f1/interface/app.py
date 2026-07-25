@@ -6,12 +6,16 @@ from datetime import datetime
 
 import streamlit as st
 
-from f1.interface.state import fetch_meetings, fetch_sessions
+from f1.domain.models import Driver, Position
+from f1.domain.services.race_pace import latest_classification
+from f1.interface.state import fetch_drivers, fetch_meetings, fetch_position, fetch_sessions
+from f1.interface.theme import configure_page
 
-st.set_page_config(page_title="F1 Dashboard", page_icon="🏎️", layout="wide")
-
-st.title("🏎️ F1 Dashboard")
-st.caption("Dados em tempo real e históricos da Fórmula 1, via OpenF1.")
+configure_page(
+    "F1 Dashboard",
+    "🏎️",
+    subtitle="Dados em tempo real e históricos da Fórmula 1, via OpenF1.",
+)
 
 current_year = datetime.now().year
 years = list(range(2023, current_year + 1))[::-1]
@@ -50,3 +54,21 @@ if session_info:
     col1.metric("Local", session_info.get("location", "-"))
     col2.metric("País", session_info.get("country_name", "-"))
     col3.metric("Início", str(session_info.get("date_start", "-")))
+
+st.subheader("Classificação (top 3)")
+positions = [Position(**point) for point in fetch_position(session_key)]
+classification = latest_classification(positions)
+if classification.empty:
+    st.info("Classificação não disponível para esta sessão (comum em treinos livres).")
+else:
+    drivers_by_number = {
+        driver["driver_number"]: Driver(**driver) for driver in fetch_drivers(session_key)
+    }
+    medals = ["🥇", "🥈", "🥉"]
+    top_columns = st.columns(3)
+    top_rows = classification.head(3).itertuples()
+    for col, medal, row in zip(top_columns, medals, top_rows, strict=False):
+        driver = drivers_by_number.get(row.driver_number)
+        label = driver.name_acronym if driver and driver.name_acronym else str(row.driver_number)
+        col.metric(f"{medal} P{int(row.position)}", label)
+        col.caption(driver.team_name if driver and driver.team_name else "-")

@@ -86,6 +86,12 @@ def fetch_intervals(session_key: int) -> list[dict]:
 
 
 @st.cache_data(ttl=CACHE_TTL_SECONDS)
+def fetch_position(session_key: int) -> list[dict]:
+    """Busca a posição de cada piloto ao longo de uma sessão."""
+    return _safe_get("position", session_key=session_key)
+
+
+@st.cache_data(ttl=CACHE_TTL_SECONDS)
 def fetch_race_control(session_key: int) -> list[dict]:
     """Busca as mensagens da direção de prova de uma sessão."""
     return _safe_get("race_control", session_key=session_key)

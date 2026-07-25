@@ -8,7 +8,56 @@ from __future__ import annotations
 
 import pandas as pd
 
-from f1.domain.models import Interval, RaceControlMessage, Weather
+from f1.domain.models import Interval, Position, RaceControlMessage, Weather
+
+
+def build_position_evolution(
+    positions: list[Position], driver_numbers: list[int] | None = None
+) -> pd.DataFrame:
+    """Monta a evolução de posição de cada piloto ao longo da sessão.
+
+    Args:
+        positions: posições registradas de uma sessão.
+        driver_numbers: se informado, filtra apenas estes pilotos.
+
+    Returns:
+        DataFrame ordenado por piloto e data com a posição em cada instante.
+    """
+    selected = (
+        positions
+        if driver_numbers is None
+        else [point for point in positions if point.driver_number in driver_numbers]
+    )
+    rows = [
+        {
+            "driver_number": point.driver_number,
+            "date": point.date,
+            "position": point.position,
+        }
+        for point in selected
+    ]
+    columns = ["driver_number", "date", "position"]
+    if not rows:
+        return pd.DataFrame(columns=columns)
+    return pd.DataFrame(rows).sort_values(["driver_number", "date"]).reset_index(drop=True)
+
+
+def latest_classification(positions: list[Position]) -> pd.DataFrame:
+    """Retorna a última posição conhecida de cada piloto, ordenada por posição.
+
+    Args:
+        positions: posições registradas de uma sessão (todos os pilotos).
+
+    Returns:
+        DataFrame com uma linha por piloto (posição mais recente), ordenado
+        do 1º colocado em diante. Pilotos sem `date` são ignorados.
+    """
+    table = build_position_evolution(positions)
+    dated = table.dropna(subset=["date"])
+    if dated.empty:
+        return dated
+    latest_idx = dated.groupby("driver_number")["date"].idxmax()
+    return dated.loc[latest_idx].sort_values("position").reset_index(drop=True)
 
 
 def build_gap_evolution(

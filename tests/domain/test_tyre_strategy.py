@@ -1,5 +1,9 @@
-from f1.domain.models import PitStop, Stint
-from f1.domain.services.tyre_strategy import build_pit_stop_summary, build_stint_timeline
+from f1.domain.models import Lap, PitStop, Stint
+from f1.domain.services.tyre_strategy import (
+    build_pit_stop_summary,
+    build_stint_pace,
+    build_stint_timeline,
+)
 
 STINTS = [
     Stint(driver_number=1, stint_number=1, compound="SOFT", lap_start=1, lap_end=15),
@@ -10,6 +14,14 @@ STINTS = [
 PIT_STOPS = [
     PitStop(driver_number=1, lap_number=15, pit_duration=2.3),
     PitStop(driver_number=44, lap_number=20, pit_duration=2.8),
+]
+
+DEGRADING_STINT = [
+    Stint(driver_number=1, stint_number=1, compound="SOFT", lap_start=1, lap_end=6),
+]
+
+DEGRADING_LAPS = [
+    Lap(driver_number=1, lap_number=n, lap_duration=90.0 + 0.5 * (n - 1)) for n in range(1, 7)
 ]
 
 
@@ -33,6 +45,39 @@ def test_build_stint_timeline_empty_input():
 
     assert result.empty
     assert "lap_count" in result.columns
+
+
+def test_build_stint_pace_computes_degradation_rate():
+    result = build_stint_pace(DEGRADING_LAPS, DEGRADING_STINT)
+
+    assert len(result) == 1
+    row = result.iloc[0]
+    assert row["compound"] == "SOFT"
+    assert row["degradation_s_per_lap"] == 0.5
+
+
+def test_build_stint_pace_skips_stints_with_too_few_laps():
+    short_stint = [Stint(driver_number=1, stint_number=1, compound="SOFT", lap_start=1, lap_end=2)]
+    short_laps = [
+        Lap(driver_number=1, lap_number=1, lap_duration=90.0),
+        Lap(driver_number=1, lap_number=2, lap_duration=90.5),
+    ]
+
+    result = build_stint_pace(short_laps, short_stint)
+
+    assert result.empty
+
+
+def test_build_stint_pace_empty_input():
+    result = build_stint_pace([], [])
+
+    assert result.empty
+    assert list(result.columns) == [
+        "driver_number",
+        "stint_number",
+        "compound",
+        "degradation_s_per_lap",
+    ]
 
 
 def test_build_pit_stop_summary_filters_by_driver():

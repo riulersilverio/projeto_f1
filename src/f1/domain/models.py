@@ -129,6 +129,16 @@ class Interval(OpenF1Model):
     date: datetime | None = None
 
 
+class Position(OpenF1Model):
+    """A posição de um piloto em um instante da sessão."""
+
+    session_key: int | None = None
+    meeting_key: int | None = None
+    driver_number: int
+    date: datetime | None = None
+    position: int | None = None
+
+
 class Weather(OpenF1Model):
     """Condições climáticas registradas durante a sessão."""
 

@@ -98,6 +98,10 @@ class OpenF1Client:
         """Busca intervalos de tempo entre os carros."""
         return self.get("intervals", **params)
 
+    def get_position(self, **params: Any) -> list[dict[str, Any]]:
+        """Busca a posição de cada piloto ao longo da sessão."""
+        return self.get("position", **params)
+
     def get_stints(self, **params: Any) -> list[dict[str, Any]]:
         """Busca stints (jogos de pneus usados durante a sessão)."""
         return self.get("stints", **params)

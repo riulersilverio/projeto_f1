@@ -1,13 +1,22 @@
-from f1.domain.models import Interval, RaceControlMessage, Weather
+from f1.domain.models import Interval, Position, RaceControlMessage, Weather
 from f1.domain.services.race_pace import (
     build_gap_evolution,
+    build_position_evolution,
     build_race_events,
     build_weather_timeline,
+    latest_classification,
 )
 
 INTERVALS = [
     Interval(driver_number=1, date="2024-01-01T00:00:00Z", gap_to_leader=0, interval=0),
     Interval(driver_number=44, date="2024-01-01T00:00:00Z", gap_to_leader=1.5, interval=1.5),
+]
+
+POSITIONS = [
+    Position(driver_number=1, date="2024-01-01T00:00:00Z", position=2),
+    Position(driver_number=1, date="2024-01-01T00:05:00Z", position=1),
+    Position(driver_number=44, date="2024-01-01T00:00:00Z", position=1),
+    Position(driver_number=44, date="2024-01-01T00:05:00Z", position=2),
 ]
 
 MESSAGES = [
@@ -38,6 +47,39 @@ def test_build_gap_evolution_without_filter_returns_all():
     result = build_gap_evolution(INTERVALS)
 
     assert len(result) == 2
+
+
+def test_build_position_evolution_filters_by_driver():
+    result = build_position_evolution(POSITIONS, driver_numbers=[44])
+
+    assert len(result) == 2
+    assert set(result["driver_number"]) == {44}
+
+
+def test_build_position_evolution_without_filter_returns_all():
+    result = build_position_evolution(POSITIONS)
+
+    assert len(result) == 4
+
+
+def test_build_position_evolution_empty_input():
+    result = build_position_evolution([])
+
+    assert result.empty
+    assert "position" in result.columns
+
+
+def test_latest_classification_picks_most_recent_position_per_driver():
+    result = latest_classification(POSITIONS)
+
+    assert list(result["driver_number"]) == [1, 44]
+    assert list(result["position"]) == [1, 2]
+
+
+def test_latest_classification_empty_input():
+    result = latest_classification([])
+
+    assert result.empty
 
 
 def test_build_race_events_keeps_only_relevant_categories():

@@ -9,12 +9,14 @@ from f1.domain.models import CarData, Driver, Lap
 from f1.domain.services.driver_comparison import (
     best_lap_per_driver,
     compare_lap_times,
+    compare_sectors,
     compare_telemetry,
+    speed_trap_summary,
 )
 from f1.interface.state import fetch_car_data, fetch_drivers, fetch_laps, require_session
+from f1.interface.theme import configure_page, driver_color_map
 
-st.set_page_config(page_title="Comparação de Pilotos", page_icon="🏁", layout="wide")
-st.title("🏁 Comparação de Pilotos")
+configure_page("Comparação de Pilotos", "🏁")
 
 session_key = require_session()
 
@@ -22,6 +24,18 @@ drivers = [Driver(**driver) for driver in fetch_drivers(session_key)]
 if not drivers:
     st.warning("Nenhum piloto encontrado para esta sessão.")
     st.stop()
+
+drivers_by_number = {driver.driver_number: driver for driver in drivers}
+
+
+def _driver_label(driver_number: int) -> str:
+    driver = drivers_by_number.get(driver_number)
+    return driver.name_acronym if driver and driver.name_acronym else str(driver_number)
+
+
+label_color_map = {
+    _driver_label(number): color for number, color in driver_color_map(drivers).items()
+}
 
 driver_labels = {
     f"{driver.name_acronym} — {driver.full_name}": driver.driver_number for driver in drivers
@@ -41,13 +55,44 @@ lap_table = compare_lap_times(laps, driver_numbers)
 if lap_table.empty:
     st.info("Sem dados de voltas para os pilotos selecionados.")
 else:
+    lap_table["piloto"] = lap_table["driver_number"].map(_driver_label)
     lap_fig = px.line(
-        lap_table, x="lap_number", y="lap_duration", color="driver_number", markers=True
+        lap_table,
+        x="lap_number",
+        y="lap_duration",
+        color="piloto",
+        color_discrete_map=label_color_map,
+        markers=True,
     )
     st.plotly_chart(lap_fig, width="stretch")
 
     st.subheader("Melhor volta")
     st.dataframe(best_lap_per_driver(laps, driver_numbers), width="stretch")
+
+st.subheader("Setores")
+sector_table = compare_sectors(laps, driver_numbers)
+if sector_table.empty:
+    st.info("Sem tempos de setor para os pilotos selecionados.")
+else:
+    sector_table["piloto"] = sector_table["driver_number"].map(_driver_label)
+    sector_fig = px.bar(
+        sector_table,
+        x="sector",
+        y="duration",
+        color="piloto",
+        color_discrete_map=label_color_map,
+        barmode="group",
+    )
+    st.plotly_chart(sector_fig, width="stretch")
+
+st.subheader("Velocidade máxima (speed trap)")
+speed_trap_table = speed_trap_summary(laps, driver_numbers)
+if speed_trap_table.empty:
+    st.info("Sem dados de velocidade máxima para os pilotos selecionados.")
+else:
+    speed_columns = st.columns(len(speed_trap_table))
+    for col, row in zip(speed_columns, speed_trap_table.itertuples(), strict=False):
+        col.metric(_driver_label(row.driver_number), f"{row.top_speed:.0f} km/h")
 
 st.subheader("Telemetria")
 if len(driver_numbers) > 2:
@@ -62,5 +107,8 @@ else:
     if telemetry.empty:
         st.info("Sem dados de telemetria disponíveis para os pilotos selecionados.")
     else:
-        speed_fig = px.line(telemetry, x="date", y="speed", color="driver_number")
+        telemetry["piloto"] = telemetry["driver_number"].map(_driver_label)
+        speed_fig = px.line(
+            telemetry, x="date", y="speed", color="piloto", color_discrete_map=label_color_map
+        )
         st.plotly_chart(speed_fig, width="stretch")
