@@ -14,7 +14,7 @@ from f1.domain.services.driver_comparison import (
     speed_trap_summary,
 )
 from f1.interface.state import fetch_car_data, fetch_drivers, fetch_laps, require_session
-from f1.interface.theme import configure_page, driver_color_map
+from f1.interface.theme import configure_page, driver_card, driver_color_map
 
 configure_page("Comparação de Pilotos", "🏁")
 
@@ -33,9 +33,8 @@ def _driver_label(driver_number: int) -> str:
     return driver.name_acronym if driver and driver.name_acronym else str(driver_number)
 
 
-label_color_map = {
-    _driver_label(number): color for number, color in driver_color_map(drivers).items()
-}
+color_map = driver_color_map(drivers)
+label_color_map = {_driver_label(number): color for number, color in color_map.items()}
 
 driver_labels = {
     f"{driver.name_acronym} — {driver.full_name}": driver.driver_number for driver in drivers
@@ -47,6 +46,10 @@ driver_numbers = [driver_labels[label] for label in selected_labels]
 if not driver_numbers:
     st.info("Selecione ao menos um piloto para comparar.")
     st.stop()
+
+card_columns = st.columns(len(driver_numbers))
+for col, number in zip(card_columns, driver_numbers, strict=False):
+    driver_card(col, drivers_by_number.get(number), number, color_map[number])
 
 laps = [Lap(**lap) for lap in fetch_laps(session_key)]
 

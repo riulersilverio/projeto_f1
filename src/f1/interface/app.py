@@ -9,7 +9,7 @@ import streamlit as st
 from f1.domain.models import Driver, Position
 from f1.domain.services.race_pace import latest_classification
 from f1.interface.state import fetch_drivers, fetch_meetings, fetch_position, fetch_sessions
-from f1.interface.theme import configure_page
+from f1.interface.theme import FALLBACK_DRIVER_COLOR, configure_page, driver_card, driver_color_map
 
 configure_page(
     "F1 Dashboard",
@@ -61,14 +61,13 @@ classification = latest_classification(positions)
 if classification.empty:
     st.info("Classificação não disponível para esta sessão (comum em treinos livres).")
 else:
-    drivers_by_number = {
-        driver["driver_number"]: Driver(**driver) for driver in fetch_drivers(session_key)
-    }
+    session_drivers = [Driver(**driver) for driver in fetch_drivers(session_key)]
+    drivers_by_number = {driver.driver_number: driver for driver in session_drivers}
+    color_map = driver_color_map(session_drivers)
     medals = ["🥇", "🥈", "🥉"]
     top_columns = st.columns(3)
     top_rows = classification.head(3).itertuples()
     for col, medal, row in zip(top_columns, medals, top_rows, strict=False):
         driver = drivers_by_number.get(row.driver_number)
-        label = driver.name_acronym if driver and driver.name_acronym else str(row.driver_number)
-        col.metric(f"{medal} P{int(row.position)}", label)
-        col.caption(driver.team_name if driver and driver.team_name else "-")
+        color = color_map.get(row.driver_number, FALLBACK_DRIVER_COLOR)
+        driver_card(col, driver, row.driver_number, color, extra=f"{medal} P{int(row.position)}")

@@ -12,7 +12,7 @@ from f1.domain.services.tyre_strategy import (
     build_stint_timeline,
 )
 from f1.interface.state import fetch_drivers, fetch_laps, fetch_pit, fetch_stints, require_session
-from f1.interface.theme import TYRE_COMPOUND_COLORS, configure_page
+from f1.interface.theme import TYRE_COMPOUND_COLORS, configure_page, driver_color_map, driver_roster
 
 configure_page("Estratégia de Pneus", "🛞")
 
@@ -28,6 +28,8 @@ def _driver_label(driver_number: int) -> str:
     driver = drivers.get(driver_number)
     return driver.name_acronym if driver and driver.name_acronym else str(driver_number)
 
+
+driver_roster(st, list(drivers.values()), driver_color_map(list(drivers.values())))
 
 st.subheader("Linha do tempo de compostos")
 stint_table = build_stint_timeline(stints)

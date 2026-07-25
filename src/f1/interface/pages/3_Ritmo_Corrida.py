@@ -22,7 +22,7 @@ from f1.interface.state import (
     fetch_weather,
     require_session,
 )
-from f1.interface.theme import configure_page, driver_color_map
+from f1.interface.theme import configure_page, driver_color_map, driver_roster
 
 configure_page("Ritmo de Corrida", "📈")
 
@@ -35,6 +35,8 @@ intervals = [Interval(**interval) for interval in fetch_intervals(session_key)]
 positions = [Position(**point) for point in fetch_position(session_key)]
 messages = [RaceControlMessage(**message) for message in fetch_race_control(session_key)]
 weather = [Weather(**entry) for entry in fetch_weather(session_key)]
+
+driver_roster(st, drivers_list, color_map)
 
 
 def _driver_label(driver_number: int) -> str:
